@@ -857,6 +857,31 @@ fn handle_global_command(
         Command::ClosePopup => {
             ui.popup = None;
         }
+        #[cfg(feature = "fx")]
+        Command::ToggleEffects => {
+            // Toggle effects
+            ui.enable_effects = !ui.enable_effects;
+            tracing::info!("Effects toggled: {}", ui.enable_effects);
+        }
+        #[cfg(feature = "fx")]
+        Command::CycleProgressBarEffect => {
+            // Cycle through progress bar effects
+            use config::ProgressBarEffect;
+            ui.current_effect = match ui.current_effect {
+                ProgressBarEffect::None => ProgressBarEffect::Circles,
+                ProgressBarEffect::Circles => ProgressBarEffect::Squares,
+                ProgressBarEffect::Squares => ProgressBarEffect::Triangles,
+                ProgressBarEffect::Triangles => ProgressBarEffect::None,
+            };
+
+            tracing::info!("Progress bar effect changed to: {:?}", ui.current_effect);
+        }
+        #[cfg(feature = "fx")]
+        Command::ToggleVisualization => {
+            // Toggle visualization
+            ui.enable_visualization = !ui.enable_visualization;
+            tracing::info!("Visualization toggled: {}", ui.enable_visualization);
+        }
         _ => return Ok(false),
     }
     Ok(true)

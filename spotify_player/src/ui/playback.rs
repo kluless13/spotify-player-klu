@@ -378,39 +378,55 @@ fn render_playback_progress_bar(
     // them coming through into the ratios
     let ratio = (progress.num_seconds() as f64 / duration.num_seconds() as f64).clamp(0.0, 1.0);
 
+    // Get animated color if effects are enabled
+    #[cfg(feature = "fx")]
+    let animated_style = if ui.enable_effects {
+        if let Some(color) = ui
+            .current_effect
+            .get_animated_color(ui.effects_state.elapsed(), ratio)
+        {
+            Some(Style::default().fg(color))
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    #[cfg(not(feature = "fx"))]
+    let animated_style: Option<Style> = None;
+
+    let progress_bar_style = animated_style.unwrap_or_else(|| ui.theme.playback_progress_bar());
+    let label = format!(
+        "{}/{}",
+        crate::utils::format_duration(&progress),
+        crate::utils::format_duration(&duration),
+    );
+
+    // Render progress bar
     match config::get_config().app_config.progress_bar_type {
         config::ProgressBarType::Line => frame.render_widget(
             LineGauge::default()
-                .filled_style(ui.theme.playback_progress_bar())
+                .filled_style(progress_bar_style)
                 .unfilled_style(ui.theme.playback_progress_bar_unfilled())
                 .ratio(ratio)
                 .label(Span::styled(
-                    format!(
-                        "{}/{}",
-                        crate::utils::format_duration(&progress),
-                        crate::utils::format_duration(&duration),
-                    ),
+                    label,
                     Style::default().add_modifier(Modifier::BOLD),
                 )),
             rect,
         ),
         config::ProgressBarType::Rectangle => frame.render_widget(
             Gauge::default()
-                .gauge_style(ui.theme.playback_progress_bar())
+                .gauge_style(progress_bar_style)
                 .ratio(ratio)
                 .label(Span::styled(
-                    format!(
-                        "{}/{}",
-                        crate::utils::format_duration(&progress),
-                        crate::utils::format_duration(&duration),
-                    ),
+                    label,
                     Style::default().add_modifier(Modifier::BOLD),
                 )),
             rect,
         ),
     }
-
-    // update the progress bar's position stored inside the UI state
+    
     ui.playback_progress_bar_rect = rect;
 }
 

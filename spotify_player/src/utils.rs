@@ -95,3 +95,42 @@ pub fn filtered_items_from_query<'a, T: std::fmt::Display>(
         })
         .collect::<Vec<_>>()
 }
+
+/// Extract dominant RGB color from album art image
+#[cfg(feature = "image")]
+pub fn extract_dominant_color(img: &image::DynamicImage) -> (u8, u8, u8) {
+    let img = img.resize(64, 64, image::imageops::FilterType::Nearest); // Resize for faster processing
+    let rgb_img = img.to_rgb8();
+    
+    let mut r_sum: u64 = 0;
+    let mut g_sum: u64 = 0;
+    let mut b_sum: u64 = 0;
+    let mut count: u64 = 0;
+    
+    // Sample every 4th pixel for performance
+    for (x, y, pixel) in rgb_img.enumerate_pixels() {
+        if x % 4 == 0 && y % 4 == 0 {
+            let rgb = pixel.0;
+            
+            // Skip very dark or very light pixels (often background)
+            let brightness = (rgb[0] as u16 + rgb[1] as u16 + rgb[2] as u16) / 3;
+            if brightness > 20 && brightness < 235 {
+                r_sum += rgb[0] as u64;
+                g_sum += rgb[1] as u64;
+                b_sum += rgb[2] as u64;
+                count += 1;
+            }
+        }
+    }
+    
+    if count == 0 {
+        // Fallback to cyan if no pixels sampled
+        return (0, 200, 255);
+    }
+    
+    (
+        (r_sum / count) as u8,
+        (g_sum / count) as u8,
+        (b_sum / count) as u8,
+    )
+}

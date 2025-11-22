@@ -44,6 +44,23 @@ pub struct UIState {
 
     #[cfg(feature = "image")]
     pub last_cover_image_render_info: ImageRenderInfo,
+
+    #[cfg(feature = "fx")]
+    pub effects_state: crate::ui::effects::EffectsState,
+    #[cfg(feature = "fx")]
+    pub enable_effects: bool,
+    #[cfg(feature = "fx")]
+    pub current_effect: config::ProgressBarEffect,
+    
+    // Visualization state
+    #[cfg(feature = "fx")]
+    pub visualization_start_time: std::time::Instant,
+    #[cfg(all(feature = "fx", feature = "image"))]
+    pub current_album_color: Option<(u8, u8, u8)>,
+    #[cfg(feature = "fx")]
+    pub current_bpm: f64, // Track tempo/BPM
+    #[cfg(feature = "fx")]
+    pub enable_visualization: bool,
 }
 
 impl UIState {
@@ -124,6 +141,23 @@ impl Default for UIState {
 
             #[cfg(feature = "image")]
             last_cover_image_render_info: ImageRenderInfo::default(),
+
+            #[cfg(feature = "fx")]
+            effects_state: crate::ui::effects::EffectsState::default(),
+            #[cfg(feature = "fx")]
+            enable_effects: config::get_config().app_config.enable_effects,
+            #[cfg(feature = "fx")]
+            current_effect: config::get_config().app_config.progress_bar_effect.clone(),
+            
+            // Visualization defaults
+            #[cfg(feature = "fx")]
+            visualization_start_time: std::time::Instant::now(),
+            #[cfg(all(feature = "fx", feature = "image"))]
+            current_album_color: None,
+            #[cfg(feature = "fx")]
+            current_bpm: 120.0, // Default BPM
+            #[cfg(feature = "fx")]
+            enable_visualization: config::get_config().app_config.enable_visualization,
         }
     }
 }

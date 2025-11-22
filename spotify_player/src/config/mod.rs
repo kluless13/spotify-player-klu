@@ -102,6 +102,14 @@ pub struct AppConfig {
     pub cover_img_scale: f32,
     #[cfg(feature = "pixelate")]
     pub cover_img_pixels: u32,
+    
+    // ASCII art album cover settings
+    #[cfg(feature = "image")]
+    pub enable_ascii_art: bool,
+    #[cfg(feature = "image")]
+    pub ascii_art_width: usize,
+    #[cfg(feature = "image")]
+    pub ascii_art_height: usize,
 
     #[cfg(feature = "media-control")]
     pub enable_media_control: bool,
@@ -123,6 +131,19 @@ pub struct AppConfig {
     pub seek_duration_secs: u16,
 
     pub sort_artist_albums_by_type: bool,
+
+    #[cfg(feature = "fx")]
+    pub enable_effects: bool,
+    #[cfg(feature = "fx")]
+    pub progress_bar_effect: ProgressBarEffect,
+    
+    // Visualization settings
+    #[cfg(feature = "fx")]
+    pub enable_visualization: bool,
+    #[cfg(feature = "fx")]
+    pub visualization_height: usize,
+    #[cfg(all(feature = "fx", feature = "image"))]
+    pub use_album_colors: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -155,6 +176,38 @@ pub enum ProgressBarPosition {
     Right,
 }
 config_parser_impl!(ProgressBarPosition);
+
+#[cfg(feature = "fx")]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+pub enum ProgressBarEffect {
+    None,
+    Circles,
+    Squares,
+    Triangles,
+}
+#[cfg(feature = "fx")]
+config_parser_impl!(ProgressBarEffect);
+
+#[cfg(feature = "fx")]
+impl ProgressBarEffect {
+    /// Get animated color for the progress bar based on elapsed time
+    pub fn get_animated_color(
+        &self,
+        _elapsed: std::time::Duration,
+        _progress_ratio: f64,
+    ) -> Option<ratatui::style::Color> {
+        // Effects removed - visualization is now separate
+        None
+    }
+}
+
+#[cfg(not(feature = "fx"))]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+pub enum ProgressBarEffect {
+    None,
+}
+#[cfg(not(feature = "fx"))]
+config_parser_impl!(ProgressBarEffect);
 
 #[derive(Debug, Deserialize, Serialize, ConfigParse, Clone)]
 pub struct Command {
@@ -328,6 +381,14 @@ impl Default for AppConfig {
             cover_img_scale: 1.0,
             #[cfg(feature = "pixelate")]
             cover_img_pixels: 16,
+            
+            // ASCII art defaults
+            #[cfg(feature = "image")]
+            enable_ascii_art: false,
+            #[cfg(feature = "image")]
+            ascii_art_width: 45,
+            #[cfg(feature = "image")]
+            ascii_art_height: 18,
 
             // Because of the "creating new window and stealing focus" behaviour
             // when running the media control event loop on startup,
@@ -357,6 +418,19 @@ impl Default for AppConfig {
             seek_duration_secs: 5,
 
             sort_artist_albums_by_type: false,
+
+            #[cfg(feature = "fx")]
+            enable_effects: true,
+            #[cfg(feature = "fx")]
+            progress_bar_effect: ProgressBarEffect::None,
+            
+            // Visualization defaults
+            #[cfg(feature = "fx")]
+            enable_visualization: true,
+            #[cfg(feature = "fx")]
+            visualization_height: 30,
+            #[cfg(all(feature = "fx", feature = "image"))]
+            use_album_colors: true,
         }
     }
 }

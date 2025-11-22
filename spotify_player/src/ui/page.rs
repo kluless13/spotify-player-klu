@@ -12,9 +12,10 @@ use super::{
     config, utils, utils::construct_and_render_block, Album, Artist, ArtistFocusState, Borders,
     BrowsePageUIState, Cell, Constraint, Context, ContextPageUIState, DataReadGuard, Frame, Id,
     Layout, LibraryFocusState, MutableWindowState, Orientation, PageState, Paragraph,
-    PlaylistFolderItem, Rect, Row, SearchFocusState, SharedState, Style, Table, Track,
+    PlaylistFolderItem, Rect, Row, SearchFocusState, SharedState, Span, Style, Table, Track,
     UIStateGuard,
 };
+use ratatui::widgets::Block;
 use crate::state::BidiDisplay;
 use crate::ui::utils::to_bidi_string;
 
@@ -269,7 +270,23 @@ pub fn render_context_page(
         return;
     };
 
-    // 2. Construct the page's layout
+    let configs = config::get_config();
+
+    // 2. Construct the page's layout with optional visualization
+    #[cfg(feature = "fx")]
+    let (rect, viz_rect) = if ui.enable_visualization {
+        let chunks = Layout::vertical([
+            Constraint::Fill(1),
+            Constraint::Length(configs.app_config.visualization_height as u16),
+        ])
+        .split(rect);
+        (chunks[0], Some(chunks[1]))
+    } else {
+        (rect, None)
+    };
+    #[cfg(not(feature = "fx"))]
+    let rect = rect;
+
     let rect = construct_and_render_block(
         &context_page_type.title(),
         &ui.theme,
@@ -380,6 +397,12 @@ pub fn render_context_page(
             frame.render_widget(Paragraph::new("Loading..."), rect);
         }
     }
+
+    // Render ASCII text banner if enabled
+    #[cfg(feature = "fx")]
+    if let Some(viz_rect) = viz_rect {
+        render_ascii_banner(frame, ui, viz_rect);
+    }
 }
 
 pub fn render_library_page(
@@ -400,6 +423,21 @@ pub fn render_library_page(
     };
 
     // 2. Construct the page's layout
+    // Check if we should show visualization
+    #[cfg(feature = "fx")]
+    let (rect, viz_rect) = if ui.enable_visualization {
+        let chunks = Layout::vertical([
+            Constraint::Fill(1),
+            Constraint::Length(configs.app_config.visualization_height as u16),
+        ])
+        .split(rect);
+        (chunks[0], Some(chunks[1]))
+    } else {
+        (rect, None)
+    };
+    #[cfg(not(feature = "fx"))]
+    let rect = rect;
+    
     // Split the library page into 3 windows:
     // - a playlists window
     // - a saved albums window
@@ -507,6 +545,12 @@ pub fn render_library_page(
         n_artists,
         &mut page_state.followed_artist_list,
     );
+    
+    // Render ASCII text banner if enabled
+    #[cfg(feature = "fx")]
+    if let Some(viz_rect) = viz_rect {
+        render_ascii_banner(frame, ui, viz_rect);
+    }
 }
 
 pub fn render_browse_page(
@@ -1141,4 +1185,100 @@ fn render_episode_table(
         };
         utils::render_table_window(frame, episode_table, rect, n_episodes, playable_table_state);
     }
+}
+
+/// Render ASCII animated cats and dogs
+#[cfg(feature = "fx")]
+fn render_ascii_banner(
+    frame: &mut Frame,
+    ui: &mut UIStateGuard,
+    rect: Rect,
+) {
+    // Use elapsed time to animate
+    let elapsed = ui.visualization_start_time.elapsed().as_secs_f64();
+    let frame_num = (elapsed * 2.0) as usize; // 2 FPS animation
+    
+    let width = rect.width as usize;
+    
+    // Calculate positions for animals moving across the screen
+    let cat_pos = ((elapsed * 8.0) as usize) % (width + 20);
+    let dog_pos = ((elapsed * 5.0 + 30.0) as usize) % (width + 20);
+    let ball_pos = ((elapsed * 12.0 + 15.0) as usize) % (width + 20);
+    
+    // Cat animation frames
+    let cat = if frame_num % 2 == 0 {
+        [" /\\_/\\  ", "( o.o ) ", " > ^ <  "]
+    } else {
+        [" /\\_/\\  ", "( ^.^ ) ", " > ~ <  "]
+    };
+    
+    // Dog animation frames
+    let dog = if frame_num % 2 == 0 {
+        [" /\\_/\\ ", "( o o )", "  \\-/  "]
+    } else {
+        [" /\\_/\\ ", "( O O )", "  \\=/  "]
+    };
+    
+    // Ball
+    let ball = "  o  ";
+    
+    // Build 5 lines of animation
+    let mut lines = vec![
+        vec![' '; width],
+        vec![' '; width],
+        vec![' '; width],
+        vec![' '; width],
+        vec![' '; width],
+    ];
+    
+    // Place cat
+    if cat_pos < width {
+        for (line_idx, cat_line) in cat.iter().enumerate() {
+            if line_idx + 1 < lines.len() {
+                for (i, ch) in cat_line.chars().enumerate() {
+                    if cat_pos + i < width {
+                        lines[line_idx + 1][cat_pos + i] = ch;
+                    }
+                }
+            }
+        }
+    }
+    
+    // Place dog
+    if dog_pos < width {
+        for (line_idx, dog_line) in dog.iter().enumerate() {
+            if line_idx + 1 < lines.len() {
+                for (i, ch) in dog_line.chars().enumerate() {
+                    if dog_pos + i < width {
+                        lines[line_idx + 1][dog_pos + i] = ch;
+                    }
+                }
+            }
+        }
+    }
+    
+    // Place ball
+    if ball_pos < width && ball_pos < width - ball.len() {
+        for (i, ch) in ball.chars().enumerate() {
+            if ball_pos + i < width {
+                lines[0][ball_pos + i] = ch;
+            }
+        }
+    }
+    
+    // Convert to styled text
+    let text_color = ui.theme.app().fg.unwrap_or(ratatui::style::Color::Cyan);
+    let mut text = vec![];
+    for line in lines {
+        let line_str: String = line.into_iter().collect();
+        text.push(Line::from(Span::styled(
+            line_str,
+            Style::default().fg(text_color),
+        )));
+    }
+    
+    let widget = Paragraph::new(text)
+        .block(Block::default().borders(Borders::ALL).title("🐱 kluless' korner 🐶"));
+    
+    frame.render_widget(widget, rect);
 }

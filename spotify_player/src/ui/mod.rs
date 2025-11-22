@@ -30,6 +30,12 @@ mod popup;
 pub mod single_line_input;
 pub mod utils;
 
+#[cfg(feature = "fx")]
+pub mod effects;
+
+#[cfg(feature = "fx")]
+pub mod visualizations;
+
 /// Run the application UI
 pub fn run(state: &SharedState) -> Result<()> {
     let mut terminal = init_ui().context("failed to initialize the application's UI")?;

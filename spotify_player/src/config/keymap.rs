@@ -328,6 +328,16 @@ impl Default for KeymapConfig {
                     key_sequence: "g c".into(),
                     command: Command::JumpToCurrentTrackInContext,
                 },
+                #[cfg(feature = "fx")]
+                Keymap {
+                    key_sequence: "e t".into(),
+                    command: Command::ToggleEffects,
+                },
+                #[cfg(feature = "fx")]
+                Keymap {
+                    key_sequence: "e v".into(),
+                    command: Command::ToggleVisualization,
+                },
             ],
         }
     }

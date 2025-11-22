@@ -88,6 +88,13 @@ pub enum Command {
     MovePlaylistItemDown,
 
     CreatePlaylist,
+
+    #[cfg(feature = "fx")]
+    ToggleEffects,
+    #[cfg(feature = "fx")]
+    CycleProgressBarEffect,
+    #[cfg(feature = "fx")]
+    ToggleVisualization,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -369,6 +376,12 @@ impl Command {
             Self::MovePlaylistItemUp => "move playlist item up one position",
             Self::MovePlaylistItemDown => "move playlist item down one position",
             Self::CreatePlaylist => "create a new playlist",
+            #[cfg(feature = "fx")]
+            Self::ToggleEffects => "toggle visualization effects on/off",
+            #[cfg(feature = "fx")]
+            Self::CycleProgressBarEffect => "cycle through progress bar effect types",
+            #[cfg(feature = "fx")]
+            Self::ToggleVisualization => "toggle audio visualization on/off",
             Self::VolumeChange { offset: _ } => unreachable!(),
         }
         .to_string()
